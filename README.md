@@ -1,3 +1,6 @@
-# zaehlerwerte -- PHP Script to get readings from electric meters out of the middleware server from volkszaehler
+# zaehlerwerte -- PHP script to get readings from electric meters
 
-This simply script is mostly for german owners of photovoltaics power system.  The configuration is done in the second
+This simple PHP script is mostly for german owners of photovoltaics power system to get readings
+from electric meters out of the middleware server from volkszaehler https://github.com/volkszaehler/volkszaehler.org/.
+
+The configuration is done in the 
