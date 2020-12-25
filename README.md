@@ -2,7 +2,7 @@
 
 This simple PHP script is mostly for german owners of photovoltaics power system.
 The script is used to get readings of **three** electric meters handled by the
-middleware server from volkszaehler https://github.com/volkszaehler/volkszaehler.org/.
+middleware server from [volkszaehler.org] (https://github.com/volkszaehler/volkszaehler.org/).
 
 The configuration is done in the header of the script **zaehlerwerte.php** that is
 the three **UUID** values of the volume of the purchased electricity, as well as the
