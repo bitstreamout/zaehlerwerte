@@ -1,4 +1,8 @@
 <?php // Zählerstände anzeigen
+    //
+    // Based on program: "vz_read_strom.php", 2014-05-09 RudolfReuter 
+    // 2020-12-25 Werner Fink
+    //
 
     if ($_ENV{"DOCUMENT_ROOT"})
 	chdir($_ENV{"DOCUMENT_ROOT"});
