@@ -311,7 +311,7 @@
     <fieldset>
         <select name="year">
 <?php
-    $ybase = (int)$year;
+    $ybase = (int)$thisyear;
     $syear = $ybase - 20;
     $eyear = $thisyear;
     for($y = $syear; $y <= $eyear; $y++) {
