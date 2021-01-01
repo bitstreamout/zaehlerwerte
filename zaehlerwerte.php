@@ -223,10 +223,10 @@
 		goto mskip;
 	    switch (count($entry->tuples)) {
 	    case 1:
-		$dbefore[$key] = (double)$entry->tuples[0][1];
+		$mbefore[$key] = (double)$entry->tuples[0][1];
 		break;
 	    default;
-		$dbefore[$key] = "N/A";
+		$mbefore[$key] = "N/A";
 		break;
 	    }
         }
