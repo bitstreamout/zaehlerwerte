@@ -1,6 +1,6 @@
 <?php // Zählerstände anzeigen
     //
-    // Based on program: "vz_read_strom.php", 2014-05-09 RudolfReuter 
+    // Based on program: "vz_read_strom.php", 2014-05-09 RudolfReuter
     // 2020-12-25 Werner Fink
     //
 
@@ -98,7 +98,7 @@
     }
     // Requires php7-calendar extension module!
     $days = cal_days_in_month(CAL_GREGORIAN, $month, $year);
-    $date = sprintf("%d-%d-%d", $year, $month, $day);
+    $date = sprintf("%d-%02d-%02d", $year, $month, $day);
     unset($t);
 
     if (! checkdate($month, $day, $year)) {
@@ -107,7 +107,7 @@
 	echo "Versuche stattdessen Heute<br>";
     }
 
-    if ($date != $today) {
+    if (strcmp($date,$today) != 0) {
 	$ts = timestamp($date . "T23:59:59");
     } else {
 	$ts = timestamp("now");
@@ -309,74 +309,43 @@
 <form id="user_form" action="zaehlerwerte.cgi" method="get">
     <fieldset>
         <select name="year">
-            <option value="2020">2020</option>
-            <option value="2021">2021</option>
-            <option value="2022">2022</option>
-            <option value="2023">2023</option>
-            <option value="2024">2024</option>
-            <option value="2025">2025</option>
-            <option value="2026">2026</option>
-            <option value="2027">2027</option>
-            <option value="2028">2028</option>
-            <option value="2029">2029</option>
-            <option value="2030">2030</option>
-            <option value="2031">2031</option>
-            <option value="2032">2032</option>
-            <option value="2033">2033</option>
-            <option value="2034">2034</option>
-            <option value="2035">2035</option>
-            <option value="2036">2036</option>
-            <option value="2037">2037</option>
-            <option value="2038">2038</option>
-            <option value="2039">2039</option>
-            <option value="2040">2040</option>
+<?php
+    $ybase = (int)$year;
+    $syear = $ybase - 10;
+    $eyear = $syear + 20;
+    for($y = $syear; $y <= $eyear; $y++) {
+      if ($y == (int)$year)
+	echo '<option value='.$y.' selected>'.$y.'</option>';
+      else
+	echo '<option value='.$y.'>'.$y.'</option>';
+    }
+    unset($ybase,$syear,$eyear);
+?>
         </select>
         <select name="month">
-            <option value="01">Januar</option>
-            <option value="02">Februar</option>
-            <option value="03">Maerz</option>
-            <option value="04">April</option>
-            <option value="05">Mai</option>
-            <option value="06">Juni</option>
-            <option value="07">Juli</option>
-            <option value="08">August</option>
-            <option value="09">September</option>
-            <option value="10">Oktober</option>
-            <option value="11">November</option>
-            <option value="12">Dezember</option>
+<?php
+    $months = [];
+    for ($m = 1; $m <=12; $m++) {
+        $months[$m] = strftime('%B', mktime(0,0,0,$m,1,1));
+    }
+    foreach ($months as $m => $s) {
+      if ((int)$m == (int)$month)
+	printf("<option value=\"%02d\" selected>%s</option>", $m, $s);
+      else
+	printf("<option value=\"%02d\">%s</option>", $m, $s);
+    }
+    unset($months);
+?>
         </select>
         <select name="day">
-            <option value="01">01</option>
-            <option value="02">02</option>
-            <option value="03">03</option>
-            <option value="04">04</option>
-            <option value="05">05</option>
-            <option value="06">06</option>
-            <option value="07">07</option>
-            <option value="08">08</option>
-            <option value="09">09</option>
-            <option value="10">10</option>
-            <option value="11">11</option>
-            <option value="12">12</option>
-            <option value="13">13</option>
-            <option value="14">14</option>
-            <option value="15">15</option>
-            <option value="16">16</option>
-            <option value="17">17</option>
-            <option value="18">18</option>
-            <option value="19">19</option>
-            <option value="20">20</option>
-            <option value="21">21</option>
-            <option value="22">22</option>
-            <option value="23">23</option>
-            <option value="24">24</option>
-            <option value="25">25</option>
-            <option value="26">26</option>
-            <option value="27">27</option>
-            <option value="28">28</option>
-            <option value="29">29</option>
-            <option value="30">30</option>
-            <option value="31">31</option>
+<?php
+    for ($d = 1; $d <=31; $d++) {
+      if ($d == (int)$day)
+	printf("<option value=\"%02d\" selected>%02d</option>", $d, $d);
+      else
+	printf("<option value=\"%02d\">%02d</option>", $d, $d);
+    }
+?>
         </select>
         <input type="submit" name="submit" value="submit">
     </fieldset>
