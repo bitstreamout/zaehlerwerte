@@ -99,6 +99,7 @@
     // Requires php7-calendar extension module!
     $days = cal_days_in_month(CAL_GREGORIAN, $month, $year);
     $date = sprintf("%d-%02d-%02d", $year, $month, $day);
+    $thisyear = $t->format("Y");
     unset($t);
 
     if (! checkdate($month, $day, $year)) {
@@ -311,8 +312,8 @@
         <select name="year">
 <?php
     $ybase = (int)$year;
-    $syear = $ybase - 10;
-    $eyear = $syear + 20;
+    $syear = $ybase - 20;
+    $eyear = $thisyear;
     for($y = $syear; $y <= $eyear; $y++) {
       if ($y == (int)$year)
 	echo '<option value='.$y.' selected>'.$y.'</option>';
