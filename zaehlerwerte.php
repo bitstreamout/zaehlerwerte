@@ -50,6 +50,18 @@
     }
 
     //
+    // Start Month of Quarter
+    //
+    function start_quarter($month) {
+	$_n = 10;
+	$month += 0;
+	if ($month <= 9) $_n = 07;
+	if ($month <= 6) $_n = 04;
+	if ($month <= 3) $_n = 01;
+	return $_n;
+    }
+
+    //
     // Run the final curl call with the final data access URL
     // and return either the json data or false
     //
@@ -97,7 +109,6 @@
         $day = $t->format("d");
     }
     // Requires php7-calendar extension module!
-    $days = cal_days_in_month(CAL_GREGORIAN, $month, $year);
     $date = sprintf("%d-%02d-%02d", $year, $month, $day);
     $thisyear = $t->format("Y");
     unset($t);
@@ -251,9 +262,61 @@
 	    $mbefore["Gesamtverbrauch"] = "N/A";
     }
 
-    $maxcols = 4;
+    $q = new DateTime($year . '-' . start_quarter((int)$month) . '-' . "01");
+    $qname = strftime("%B", $q->getTimestamp());
+    $q->modify("-1 day");
+    $previous = $q->format("Y-m-d");
+    unset($q);
+
+    $qts = timestamp($previous . "T23:59:59");
+
+    $qbefore = [];
+    $json = askmiddleware("${middleware}&from=$qts&to=$qts");
+    if ($json) {
+	if ($debug) {
+	    echo "Begin Debug\n";
+	    print_r($json);
+	    echo "\nEnd Debug\n";
+	}
+        foreach ($uuids as $key => $uuid) {
+	    foreach ($json->data as $entry) {
+		if ($uuid == $entry->uuid)
+		    break;
+	    }
+	    if (count($entry->tuples) == 0)
+		goto qskip;
+	    switch (count($entry->tuples)) {
+	    case 1:
+		$qbefore[$key] = (double)$entry->tuples[0][1];
+		break;
+	    default;
+		$qbefore[$key] = "N/A";
+		break;
+	    }
+        }
+    } else {
+    qskip:
+	echo "<h3>Daten für Monat $qname nicht vollstängig, überspringe Datensatz!<h3>\n";
+	    foreach ($uuids as $key => $uuid)
+		$qbefore[$key] = "N/A";
+    }
+    unset($json);
+    if (count($qbefore) != 3) {
+	echo "Daten sind korrupt!<br>\n";
+    } else {
+	if (is_numeric($qbefore["Erzeugung"]) && is_numeric($qbefore["Einspeisung"]))
+	    $qbefore["Eigenverbrauch"]  = $qbefore["Erzeugung"]-$qbefore["Einspeisung"];
+	else
+	    $qbefore["Eigenverbrauch"]  = "N/A";
+	if (is_numeric($qbefore["Eigenverbrauch"]) && is_numeric($qbefore["Bezug"]))
+	    $qbefore["Gesamtverbrauch"] = $qbefore["Eigenverbrauch"] + $qbefore["Bezug"];
+	else
+	    $qbefore["Gesamtverbrauch"] = "N/A";
+    }
+
+    $maxcols = 5;
     $startid = 0;
-    $ids  = [ "Art", "Total", "&Delta;Tag", "&Delta;Monat" ];
+    $ids  = [ "Art", "Total", "&Delta;Tag", "&Delta;Monat", "&Delta;Quartal" ];
     $arts = [ "Bezug", "Einspeisung", "Erzeugung", "Eigenverbrauch", "Gesamtverbrauch" ];
 
     echo "<span>";
@@ -282,6 +345,8 @@
 		$dbefore[$art] = "N/A";
 	    if (!isset($mbefore[$art]) || $mbefore[$art] < 0 || $mbefore[$art] > $values[$art])
 		$mbefore[$art] = "N/A";
+	    if (!isset($qbefore[$art]) || $qbefore[$art] < 0 || $qbefore[$art] > $values[$art])
+		$qbefore[$art] = "N/A";
 	    switch ($j) {
 	    case 1:
 		printf("<td align='right'>%10.3f&thinsp;kWh</td>", $values[$art]/1000);
@@ -292,11 +357,17 @@
 		else
 		    printf("<td align='right'>%s&thinsp;kWh</td>", $dbefore[$art]); 
 		break;
-	    default:
+	    case 3:
 		if (is_numeric($mbefore[$art]))
 		    printf("<td align='right'>%10.3f&thinsp;kWh</td>", ($values[$art]-$mbefore[$art])/1000);
 		else
 		    printf("<td align='right'>%s&thinsp;kWh</td>", $mbefore[$art]); 
+		break;
+	    default:
+		if (is_numeric($qbefore[$art]))
+		    printf("<td align='right'>%10.3f&thinsp;kWh</td>", ($values[$art]-$qbefore[$art])/1000);
+		else
+		    printf("<td align='right'>%s&thinsp;kWh</td>", $qbefore[$art]); 
 		break;
 	    }
 	}
@@ -340,6 +411,7 @@
         </select>
         <select name="day">
 <?php
+//    $days = cal_days_in_month(CAL_GREGORIAN, $month, $year);
     for ($d = 1; $d <=31; $d++) {
       if ($d == (int)$day)
 	printf("<option value=\"%02d\" selected>%02d</option>", $d, $d);
