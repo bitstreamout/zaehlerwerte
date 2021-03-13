@@ -28,6 +28,11 @@
     $middleware="${middleware}/data.json?options=raw";
 
     //
+    // Datebase exists since
+    //
+    $since = "2020-12-15";
+
+    //
     // Ende Konfiguration
     //
 ?>
@@ -82,9 +87,10 @@
 	return $result;
     }
 ?>
-<html>
+<html lang="de_DE">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta http-equiv="refresh" content="300">
 <style type="text/css">
   .content { display: inline; white-space: pre-wrap; word-wrap: break-word; }
   .bold { font-weight: bold; }
@@ -99,16 +105,18 @@
 <?php
     $t = new DateTime("today");
     $today = $t->format("Y-m-d");
-    if (isset($_GET['month']) && isset($_GET['year']) && isset($_GET['day'])) {
-        $month = $_GET['month'];
-        $year = $_GET['year'];
-        $day = $_GET['day'];
+    if (isset($_GET['date'])) {
+	$option = $_GET['date'];
+	$option = explode('-', $option);
+        $year = $option[0];
+        $month = $option[1];
+        $day = $option[2];
+	unset($option);
     } else {
-        $month = $t->format("m");
         $year = $t->format("Y");
+        $month = $t->format("m");
         $day = $t->format("d");
     }
-    // Requires php7-calendar extension module!
     $date = sprintf("%d-%02d-%02d", $year, $month, $day);
     $thisyear = $t->format("Y");
     unset($t);
@@ -217,9 +225,10 @@
     unset($m);
 
     $mts = timestamp($previous . "T23:59:59");
+    $mmts = $mts + 1;
 
     $mbefore = [];
-    $json = askmiddleware("${middleware}&from=$mts&to=$mts");
+    $json = askmiddleware("${middleware}&from=$mts&to=$mmts");
     if ($json) {
 	if ($debug) {
 	    echo "Begin Debug\n";
@@ -269,9 +278,10 @@
     unset($q);
 
     $qts = timestamp($previous . "T23:59:59");
+    $qqts = $qts + 1;
 
     $qbefore = [];
-    $json = askmiddleware("${middleware}&from=$qts&to=$qts");
+    $json = askmiddleware("${middleware}&from=$qts&to=$qqts");
     if ($json) {
 	if ($debug) {
 	    echo "Begin Debug\n";
@@ -296,7 +306,7 @@
         }
     } else {
     qskip:
-	echo "<h3>Daten für Monat $qname nicht vollstängig, überspringe Datensatz!<h3>\n";
+	echo "<h3>Daten für Quartal ab $qname nicht vollstängig, überspringe Datensatz!<h3>\n";
 	    foreach ($uuids as $key => $uuid)
 		$qbefore[$key] = "N/A";
     }
@@ -379,49 +389,17 @@
 ?>
 </pre>
 <form id="user_form" action="zaehlerwerte.cgi" method="get">
-    <fieldset>
-        <select name="year">
+  <fieldset>
+  <label>
+    Wähle das Datum:
 <?php
-    $ybase = (int)$thisyear;
-    $syear = $ybase - 20;
-    $eyear = $thisyear;
-    for($y = $syear; $y <= $eyear; $y++) {
-      if ($y == (int)$year)
-	echo '<option value='.$y.' selected>'.$y.'</option>';
-      else
-	echo '<option value='.$y.'>'.$y.'</option>';
-    }
-    unset($ybase,$syear,$eyear);
+    setlocale(LC_TIME, 'de_DE.UTF-8');
+    printf("<input type='date' name='date' min='%s' value='%s' max='%s' required class='date'>\n", $since, $today, $today);
 ?>
-        </select>
-        <select name="month">
-<?php
-    $months = [];
-    for ($m = 1; $m <=12; $m++) {
-        $months[$m] = strftime('%B', mktime(0,0,0,$m,1,1));
-    }
-    foreach ($months as $m => $s) {
-      if ((int)$m == (int)$month)
-	printf("<option value=\"%02d\" selected>%s</option>", $m, $s);
-      else
-	printf("<option value=\"%02d\">%s</option>", $m, $s);
-    }
-    unset($months);
-?>
-        </select>
-        <select name="day">
-<?php
-//    $days = cal_days_in_month(CAL_GREGORIAN, $month, $year);
-    for ($d = 1; $d <=31; $d++) {
-      if ($d == (int)$day)
-	printf("<option value=\"%02d\" selected>%02d</option>", $d, $d);
-      else
-	printf("<option value=\"%02d\">%02d</option>", $d, $d);
-    }
-?>
-        </select>
-        <input type="submit" name="submit" value="submit">
-    </fieldset>
+    <span class="validity"></span>
+  </label>
+  <button>Submit</button>
+  </fieldset>
 </form>
 </body>
 </html>
