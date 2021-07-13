@@ -87,10 +87,12 @@
 	return $result;
     }
 ?>
-<html lang="de_DE">
+<html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<meta http-equiv="refresh" content="300">
+<meta http-equiv="Content-Language" content="de-DE">
+<meta http-equiv="Cache-Control" content="private">
+<meta http-equiv="Expires" content="<?php echo date(DATE_RFC1123,strtotime("+5 minutes")); ?>">
 <style type="text/css">
   .content { display: inline; white-space: pre-wrap; word-wrap: break-word; }
   .bold { font-weight: bold; }
@@ -120,7 +122,6 @@
     $date = sprintf("%d-%02d-%02d", $year, $month, $day);
     $thisyear = $t->format("Y");
     unset($t);
-
     if (! checkdate($month, $day, $year)) {
 	echo "Datum $date ungültig<br>"; 
         $date = $today;
@@ -324,9 +325,62 @@
 	    $qbefore["Gesamtverbrauch"] = "N/A";
     }
 
-    $maxcols = 5;
+    $y = new DateTime($year . "-01-01");
+    $yname = strftime("%B", $y->getTimestamp());
+    $y->modify("-1 day");
+    $previous = $y->format("Y-m-d");
+    unset($y);
+
+    $yts = timestamp($previous . "T23:59:59");
+    $yyts = $yts + 1;
+
+    $ybefore = [];
+    $json = askmiddleware("${middleware}&from=$yts&to=$yyts");
+    if ($json) {
+	if ($debug) {
+	    echo "Begin Debug\n";
+	    print_r($json);
+	    echo "\nEnd Debug\n";
+	}
+        foreach ($uuids as $key => $uuid) {
+	    foreach ($json->data as $entry) {
+		if ($uuid == $entry->uuid)
+		    break;
+	    }
+	    if (count($entry->tuples) == 0)
+		goto yyskip;
+	    switch (count($entry->tuples)) {
+	    case 1:
+		$ybefore[$key] = (double)$entry->tuples[0][1];
+		break;
+	    default;
+		$ybefore[$key] = "N/A";
+		break;
+	    }
+        }
+    } else {
+    yyskip:
+	echo "<h3>Daten für Jahr ab $yname nicht vollstängig, überspringe Datensatz!<h3>\n";
+	    foreach ($uuids as $key => $uuid)
+		$ybefore[$key] = "N/A";
+    }
+    unset($json);
+    if (count($ybefore) != 3) {
+	echo "Daten sind korrupt!<br>\n";
+    } else {
+	if (is_numeric($ybefore["Erzeugung"]) && is_numeric($ybefore["Einspeisung"]))
+	    $ybefore["Eigenverbrauch"]  = $ybefore["Erzeugung"]-$ybefore["Einspeisung"];
+	else
+	    $ybefore["Eigenverbrauch"]  = "N/A";
+	if (is_numeric($ybefore["Eigenverbrauch"]) && is_numeric($ybefore["Bezug"]))
+	    $ybefore["Gesamtverbrauch"] = $ybefore["Eigenverbrauch"] + $ybefore["Bezug"];
+	else
+	    $ybefore["Gesamtverbrauch"] = "N/A";
+    }
+
+    $maxcols = 6;
     $startid = 0;
-    $ids  = [ "Art", "Total", "&Delta;Tag", "&Delta;Monat", "&Delta;Quartal" ];
+    $ids  = [ "Art", "Total", "&Delta;Tag", "&Delta;Monat", "&Delta;Quartal", "&Delta;Jahr" ];
     $arts = [ "Bezug", "Einspeisung", "Erzeugung", "Eigenverbrauch", "Gesamtverbrauch" ];
 
     echo "<span>";
@@ -357,6 +411,8 @@
 		$mbefore[$art] = "N/A";
 	    if (!isset($qbefore[$art]) || $qbefore[$art] < 0 || $qbefore[$art] > $values[$art])
 		$qbefore[$art] = "N/A";
+	    if (!isset($ybefore[$art]) || $ybefore[$art] < 0 || $ybefore[$art] > $values[$art])
+		$ybefore[$art] = "N/A";
 	    switch ($j) {
 	    case 1:
 		printf("<td align='right'>%10.3f&thinsp;kWh</td>", $values[$art]/1000);
@@ -373,11 +429,17 @@
 		else
 		    printf("<td align='right'>%s&thinsp;kWh</td>", $mbefore[$art]); 
 		break;
-	    default:
+	    case 4:
 		if (is_numeric($qbefore[$art]))
 		    printf("<td align='right'>%10.3f&thinsp;kWh</td>", ($values[$art]-$qbefore[$art])/1000);
 		else
 		    printf("<td align='right'>%s&thinsp;kWh</td>", $qbefore[$art]); 
+		break;
+	    default:
+		if (is_numeric($ybefore[$art]))
+		    printf("<td align='right'>%10.3f&thinsp;kWh</td>", ($values[$art]-$ybefore[$art])/1000);
+		else
+		    printf("<td align='right'>%s&thinsp;kWh</td>", $ybefore[$art]); 
 		break;
 	    }
 	}
@@ -394,12 +456,24 @@
     Wähle das Datum:
 <?php
     setlocale(LC_TIME, 'de_DE.UTF-8');
-    printf("<input type='date' name='date' min='%s' value='%s' max='%s' required class='date'>\n", $since, $today, $today);
+    printf("<input type='date' id='date' name='date' min='%s' max='%s' value='%s' required class='date'>\n", $since, $today, $date);
 ?>
     <span class="validity"></span>
   </label>
   <button>Submit</button>
   </fieldset>
 </form>
+<script>
+  var today = new Date(),
+      year  = ''+today.getFullYear(),
+      month = ''+(today.getMonth()+1),
+      day   = ''+today.getDate();
+  if (month.length < 2)
+      month = '0'+month;
+  if (day.length < 2)
+      day = '0'+day;
+  var curr = document.querySelector("form input[name='date']");
+  curr.max = [year,month,day].join('-');
+</script>
 </body>
 </html>
